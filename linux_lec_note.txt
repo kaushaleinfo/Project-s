@@ -1,0 +1,584 @@
+- file == inode are lost or corrupted than data block are lost
+- sysconfig() is sys call and it contain system config information
+- it has diff parameter  	1._SC_PAGESIZE
+							2._SC_N
+
+- inode structure maintain 
+- data block will have actual data
+- super block is maintain number of file system
+- boot block will have image file or booting code of OS
+- if we call sys call open 
+than internally in kernal main 3 data structure in kernal space
+1. file distcreptor table 
+2. file structure
+3. inode structure
+in user space user excute  ./aout and in backend excute all those task in kernal space
+
+
+dup and dup2 are used to create duplicate FD is create aother pointer in FD table 
+
+int dup (int fd); arg is input int fd origanal FD
+int fd1 = 3 
+if we write dup (fd1); than is return 4 bcz 3 is already in use
+
+dup2 is extension of dup its required 2 argru
+and 2 arg is own read value of FD 
+int x;
+x = dup(dup,15);
+
+but if FD is already in use and we write same as in dup2 so what is does?
+so output is still 15
+how?
+so is first close the 15 Fd file and again using that FD
+
+-->ls -l is show the long list in detail manner 
+
+-->stat() system call
+
+#include <sys/stat.h>
+#include <sys/type.h>
+
+struct stat{
+
+};
+
+stat(const chat * pathnamr.struct stat *buf);
+
+stat is return structure of info
+
+
+Lecture == 4
+-->process management 
+- $./aout is in HDD
+- any program is in excution is process
+- all process are exc in RAM
+- process exc on top CPU
+- process are define for perform spefic task
+- multiprocessing service Process management
+- 
+1. process defi
+2. process state
+	there are 5 stage 
+`	a. is new
+	b. ready
+	c. excution
+	d. wait
+	f.termination
+
+ready state to excution is called scheduler 
+is smart algorithem
+
+3.process Queues
+	a. ready Q
+- queue contain linked list process all are ready to load and excute
+- 
+	b. wait Queue
+
+
+lec 8
+
+-> intro of pipe
+-> case1 parrent write data faster to child so after sometime pipe is full
+   proc/fs/pip/pipe-max-size
+-> case2 pipe has no data and child reading end pip but no data than in block
+
+
+second tech is FIFO
+
+connection oriented comm (process1 and process2 are connected eacjother than and than only communnication is possible)
+
+FIFO used for unrelated process 
+FIFO is named pipe(any process are communicate each other)
+
+mkfifo is command to create new fifo
+open two terminal and check it 
+p indicate is pipe file is special file 
+mkfifo(namefifo,modes) on sucess return 0 and unscess -1
+
+adv of fifo 1. overflow not come
+	2. diffrent process
+	3. size of no matter
+	4.
+
+third tech of IPC  is msg queue
+#include <sys/msg.h>
+-> is liked list of msg queue in KS
+-> ipcs -q show msg list show
+-> each msg queue has unique ID
+-> msg composed of two thing 
+1.type filed (int ,float)
+2.data legnth
+each and every msg qu has strcture 
+
+struct msqid_qs
+{
+	no of msg  ==> system limit number 
+	no of bytes ==> system limit bytes
+	last pid msg send ==> 0
+	last  "   "   rev ==>  0
+	last time msg send ==> 0
+	last time msg rev ==> 0
+	system time   ==>current system time 
+}
+int msgQ_ID = msgget (key_t key,int msgflag);
+
+key_t (int)  ==> linux os is req for resources msgq
+
+msgflag = IPC_CREAT;
+
+
+lec ==> 9
+
+-> recap 
+
+//msg(22,data1) == (msg(12,data1) == msg(33,data1) ==msg(44,data1)
+
+
+process user space 
+send msgQ 	==>		rev msg type (22)
+fatch msg using type 
+fetch msg from msg q its decremt by 1 and remove by Queue
+
+=========================
+ks
+msg_1122    msg(22,data1) == (msg(12,data1) == msg(33,data1) ==msg(44,data1)
+
+is a first in first out  if same data type msg in msgQ than its first fetch msg is send to recevier 
+
+whenever we send msg to msgQ
+msgsend(msgID,void *ptr,size_t nbytes,int flags);
+
+arg1 msg ID
+arg2 is point to my msg using & symbol
+arg3is number of bytes  (size)
+arg4 NO_IPCWAIT
+
+-> for msg receive 
+id = msgget(55,IPC_CREAT|0644); =>access msgQ which is already existing in kernal space
+
+
+int msgrcv(msgID,void(*ptr),size_tnbytes ,type ,int flag);
+type is 55,66,etc...
+
+-> on success return 	            on failure return
+- value (number of byte of msgBuf)        -1
+
+ipcs -q list msgQ
+ipcrm -q remove msgQ (IPCRM is tool)
+iprm -Q remove msgQ by using msgQ_KEY
+
+
+
+msgctl(int msgID ,int cmd ,struct msqid_ds *buf);
+
+arg2 cmd:
+	1.IPC_STAT
+	2.IPC_SET
+	3.IPC_RMID
+arg3 read all data and dump all data
+
+-->recap msgQ
+	1.msgget();
+	2.msgsnd();
+	3.msgrvc();
+	4.msgcnt();
+
+-->IPC_NOWAIT(); its fouth arg of msgsend and receive
+when buff is full than Q doesn't wait in sender sidw 
+but in receive side there are no msg Q than is not wait
+
+
+===>>> Shared Memory (IPC TECH) 
+is fastest memory techinque
+
+is allow to more-than one process are allow to access memory in PAS
+
+no system are used 
+no need jump US to ks
+main logic is given shared mem maped respective PAS(
+
+struct shmid_ds{
+	permission  ==> 644
+	size	    ==> 100
+	pid_shmat    = 0
+ 	pid_shmdt    = 0
+	shmat_time   = 0 
+	shmdt_time   = 0 
+	current time;
+};
+
+example is 
+1 sever and 100 client 
+1. send data to shared memory and 100 client used shared memory 
+
+
+==>intID = shmget(key_t key, int size,int shmflag)';
+-> shmget(9,(SIZE)200,IPC_CREAT,6444);
+-> on success return ID    on failure -1
+
+==> char *ptr = shmat(int shmid,addr,flag); (shared memory attact)
+-> retuen by shmget
+-> add is address in PAS where to map dont use own address leave it by kernal or type zero (0) so kernal is allocate free address 
+-> flag is NULL
+-> on success case address to ptr    on failure -1
+
+==> shmdt (addr);// shared mem deataching
+-> addr is return by shmat
+
+==> shmctl(int shmID,int cmd,struct shmid_ds*buf);
+-> 
+ipcs -m  show current shared memory structure
+
+
+ipcs -m list msgQ
+ipcrm -m remove msgQ (IPCRM is tool)
+iprm -M remove msgQ by using shm_KEY
+what is disadvg
+========================================
+==>syncronazion tech 
+
+
+multithreading
+-> 
+
+if two process are shared same data on same time  is called race condition or is called BUG
+how reslove this bug that why we used lock and unlocked critical section
+example is global variable 
+	is buffer
+	is structure
+-> critical session  is piece of software that is access shared resource ex is printer is shared resource 
+	is provide safety
+example is printer is 2 data is print by printer
+1. is numeric
+2. alpha
+if two process same time excute than is print garbage data or is in race condion
+that why we use critical section
+lock and unlock mechanicme
+
+
+====== >>>>>  synchonazation techinque
+why we need sync 
+1.semaphore
+2.spinlock
+3.atomic
+4.mutex
+
+
+ 
+1. semaphore tech
+is one sync locking tech is provide sync
+	**property**
+-> semaphore are optimazation for non contension tech
+			its mean no comptitation
+-> semaphore is not use in interrupt
+->  no issue of priority high and low process are not impaact on that 
+
+-> job of semaphore is putting process 2 is in wait Q of semaphore there are no fighting in process
+
+simple example is printer which is print two data 
+1. is numeric and second is alpha
+
+
+************************************************************
+process 1 is numeric 		process 2 is alpha
+{				{
+...					..
+..					..
+					..
+}				}
+
+	|			|
+	|			|
+	|-----------------------|
+		    |
+		    |
+		    v
+		shared mem resourced
+	HERE IS SOME LOCK AND UNLOCK TECH ie semaphore mutex atomic etc..
+		LOCK();
+		{
+			...	
+			...  (its critical section)
+		}
+		UNLOCK();
+************************************************************
+==> session-11
+-> why we need synchro
+-> we hava shared data or global resource its serve service at time one service
+-> or called critical session 
+-> or two or more process are acess same time a shared resource's than its in race condition
+-> so will have provide sync 
+-> by using coordination we need to apply lock and unlock techine if process 1 are excute than process 2 are going to  waiting state is called synchro 
+-> linux provide some sync techinque 
+1.semaphore  #include <semaphore.h>
+
+-> semaphore has own wait Q
+-> declare semaphore :- sem_t  mysem;==object 
+-> init  sem_init(mysem,0,1);
+`== argru1 is object 
+===argu2 is 0 for allow to shared semphore object 
+== argu3 is init mysem
+
+==>sem_wait(mysem);
+	{............
+	...............
+	critical section....
+	.............
+	............. 
+	}
+-> sem_post(mysem); is for unlock
+
+some step of sem
+
+
+-> printer === semaphore == pros1 ===pros2 ===pros3
+
+type of semaphore 
+1. binary semaphore :-
+   where token count changes from 0 to 1 or resource are one is called binary semaphore 
+
+2. counting semaphore
+   token count is > 1 or use for multiple resouces is called counting semaphore
+   for alloacting time 3/2/1/0 and after deallocating 0/1/2/3 (in short incrememnt and decrement by1 ) 
+   FIFO order is follow for block and unblocked
+
+	   
+2.==> spinlock
+  another process is in spin mode continues check in backgruod
+  process is in busy loop and pool mode weather lock is available or not
+  spin_lock();
+{
+	critical section....
+}
+  spin_unlock();
+
+-> no sleep call and wait call or delay call 
+   are not allowed here which can increase time spent spinlock
+--> features to make spinlock to be it in interrupt (ISR)
+
+==> real time deadlock with spinlock
+  -> if process 1 are in critical section and if interrupt is occur than the deadlock are there (niether process are move nor interuupt are moves)
+     so how we remove the deadlock 
+	so answer is turn-off the or disable interrupt before enter to spin_lock and enbale after unlock_spinlock
+	this is deadlock avoid tech..
+
+
+==> atomic
+-> is tiny or invisible or opern is very fast
+atmoic_t ( structure )
+
+==> Mutex
+  is also a one of locking tech similar as binary semaphore 
+  mutex are cant be intigraded in interrupt
+
+-->declaration 
+	struct mutex my_mutex;
+	mutex_init(&mutex);
+	mutex_lock(struct mutex*);
+
+-> mutex is mutual exclusive(lock and unlock) provide lock and unlocked 
+
+
+-> Diff betn mutex and semaphore
+ 
+ semaphone is supoortd siganlling mechanicm
+ GRUB = is grand Unified Bootloader
+
+
+session-16
+
+module programming 
+
+we wrtiting a our code to insert into kernal 
+load and unload 
+
+kernal module is also called as dyanmic module 
+==> dyanamic means when we used then we are loaded and when we finished our work then unloaded 
+
+-> instead of calling of default serviced we callling our services
+
+but where we write a our code in c file but we genrate .ko file (kernal object)
+-> xxx one.c -o one.ko ==> this is syantax
+-> kernal object file that file are include in kernal 
+
+issue with design module programming 
+
+1. never used space c lib function 
+2. never used system call
+3. coding standard must be GNU c specific standard not ANSI C 
+4. never invoke gcc directly 
+
+GNU is extension of ANSI c 
+GNU = ANSI C + extra
+
+fun = name is ANSI C 
+func : name GNU C 
+diff is reprenseted are diff 
+
+-->uname -r you get kernal version
+
+--> lsmod list all module this show all static moduel  or its part of kernal 
+
+
+to design devlop module we need
+1.c file 
+2.header file 
+3.makefile 
+4.config file 
+
+==>we required 
+-> header file 
+minium header file requied 
+#include <linux/module.h>  ==>module interfce 
+#include <linux/kernal.h> ==> for pk();
+#include <linux/init.h> == we will have macro
+
+-> module body{
+we have init routine and clenup_routiune
+}
+
+-> module macro
+module_init(
+
+int my_init(){
+
+}
+
+int my_exit(){
+// this is cleanup rpoutine
+}
+
+kernal macro 
+module_init(my_init);
+moduel_exit(my_exit);
+
+==> we requied c and makfile and place into same folder 
+
+makefile is path to kernal header file 
+
+==> $ make is tool is called gcc internally and gernate object file
+
+first run only make tool
+
+$make 
+
+
+its genrrate .ko file 
+
+-->sudo insmod  hello.ko
+(insmod) is tools
+to insert module into kernal 
+
+lsmod and check 
+
+printk() is not display device its dumping into kernal dedicted log buffer 
+
+==> demsg job of demsg of taking a data from kernal bufffer and print into screen 
+
+how to unload module 
+sudo rmmod hello 
+remove module from memory and the free memory 
+
+process and kernal moduele diff
+--> use app has one entry point is main 
+    and in kernal app has two entry point init and exit
+--> a process is init execute and if work is done than is out of memory 
+--> but in kernal services init and untill called rmmod
+--> user process are direct intract with display and the kernal process are not by using demsg
+ 
+session-18
+
+VFS 
+
+copy from document provided by sir 
+
+device driver 
+--> piece of software that communicate to thw HW bring the functionality of hw to end user appli
+
+
+implement charater device driver 
+
+sudo mknod is cmd to create device filee 
+sudo mknod /dev/devfile 
+
+linux understand three diff category
+
+char device  ==> in term of char by char ex keyboard mouse touch
+
+block device driver ===> bluk data for high speed device ex hdd pendrive 
+
+network device ==> over network devices driver 
+
+do program <====
+
+device id has contain two number 
+1. major and minor
+cat /proc/devices its show device file 
+
+static driver means we set major number we already know the major number 
+
+
+dyanamic driver 
+
+
+driver_open(inode*,file*)
+{
+	fff
+}
+
+ check major number 
+by using /proc/devices
+
+then sudo mknod /dev/newfile c 240 0 
+
+goto driver code change the major number according 
+
+regiter to VFS 
+
+sudo insmod .ko file 
+
+
+session -19
+
+1.create device file representing devices in filesystem
+
+==> sudo mknod /dev/my_dev_file c 200 0 
+->c for charater device driver 
+-> 200 and 0 is device id broken into 2 part 1 is major number and 2 is minor number 
+-> how to check by command /proc/devices
+
+2.Implement driver routine as per struct file operation structure and register to VFS 
+VFS understand struct file opearion 
+
+register_chardev(225,"newfile",&fops);
+
+
+==>issue with static driver 
+-> major number selecting same then driver is not excute because samw some other 
+==>MJ number is 2 power 8 that 255 max number 
+-> but in dyanamic we have 12 bit major number and 20 bits of minor number 
+
+
+
+dyanamic driver model
+
+->implement driver routine as per struct file opeation strcutre accquire free major number
+  using free MJ No register with VFS
+
+-> creating device file represwnting device filesystem
+ sudo mknod  /dev/my_dev_file  c 246 0 
+
+session -21
+
+
+
+
+
+
+
+
+
+
+
+
+
